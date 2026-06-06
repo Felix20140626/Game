@@ -1,0 +1,27 @@
+{
+  "name": "evolution-clicker-game",
+  "version": "1.0.0",
+  "description": "A massive text-based evolution clicker game with complex systems",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest tests/",
+    "build": "webpack --config webpack.config.js"
+  },
+  "keywords": ["game", "evolution", "clicker", "text-based"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "uuid": "^9.0.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "nodemon": "^2.0.22",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.4"
+  }
+}
