@@ -285,7 +285,10 @@ const Utils = {
     }
 };
 
-// 导出模块
+// ES6 Module Export
+export { Utils };
+
+// CommonJS Export (for Node.js compatibility)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Utils;
 }

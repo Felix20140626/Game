@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>进化点击游戏 - Evolution Clicker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+        }
+        
+        #app {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .game-header {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .game-header h1 {
+            margin-bottom: 15px;
+            color: #00d9ff;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+        
+        .resource-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .resource {
+            background: rgba(0, 217, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .game-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .game-main {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .click-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .organism-display {
+            margin-bottom: 20px;
+        }
+        
+        .organism-sprite {
+            font-size: 80px;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .evolve-btn {
+            background: linear-gradient(45deg, #00d9ff, #00ff88);
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #1a1a2e;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+            margin-top: 10px;
+        }
+        
+        .evolve-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 217, 255, 0.6);
+        }
+        
+        .evolve-btn:active {
+            transform: translateY(0);
+        }
+        
+        .upgrades-section, .evolution-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .upgrade-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upgrade-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .upgrade-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .log-section {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        h2 {
+            color: #00d9ff;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        
+        .evolution-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header class="game-header">
+            <h1>🧬 进化点击游戏</h1>
+            <div class="resource-bar">
+                <span class="resource">DNA: <span id="dna-count">0</span></span>
+                <span class="resource">DPS: <span id="dps-count">0</span></span>
+                <span class="resource">世代: <span id="generation-count">1</span></span>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <section class="click-section">
+                <div class="organism-display">
+                    <h2 id="organism-name">原始单细胞</h2>
+                    <div class="organism-sprite" id="organism-sprite">🦠</div>
+                    <button id="click-btn" class="evolve-btn">吸收能量!</button>
+                    <div class="evolution-info">
+                        <div>下一级：<span id="next-stage-name">原核生物</span></div>
+                        <div style="margin-top: 5px;">需要 DNA: <span id="dna-required">100</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="evolution-progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="upgrades-section">
+                <h2>升级与变异</h2>
+                <div id="upgrades-list"></div>
+            </section>
+
+            <section class="log-section">
+                <h2>进化日志</h2>
+                <div id="game-log"></div>
+            </section>
+        </main>
+
+        <footer class="game-footer" style="text-align: center; margin-top: 20px; opacity: 0.7;">
+            <p>通过点击收集 DNA，不断进化成为更高级的生命形式!</p>
+        </footer>
+    </div>
+
+    <script>
+        // ==================== 游戏数据 ====================
+        const EVOLUTION_STAGES = [
+            { id: 0, name: '原始单细胞', emoji: '🦠', dnaCost: 0, baseClick: 1, baseDPS: 0 },
+            { id: 1, name: '原核生物', emoji: '🧫', dnaCost: 100, baseClick: 2, baseDPS: 1 },
+            { id: 2, name: '真核生物', emoji: '🔬', dnaCost: 500, baseClick: 5, baseDPS: 3 },
+            { id: 3, name: '多细胞生物', emoji: '🌿', dnaCost: 2000, baseClick: 10, baseDPS: 8 },
+            { id: 4, name: '简单动物', emoji: '🐛', dnaCost: 10000, baseClick: 25, baseDPS: 20 },
+            { id: 5, name: '鱼类', emoji: '🐟', dnaCost: 50000, baseClick: 50, baseDPS: 40 },
+            { id: 6, name: '两栖动物', emoji: '🐸', dnaCost: 200000, baseClick: 100, baseDPS: 80 },
+            { id: 7, name: '爬行动物', emoji: '🦎', dnaCost: 1000000, baseClick: 250, baseDPS: 200 },
+            { id: 8, name: '哺乳动物', emoji: '🐭', dnaCost: 5000000, baseClick: 500, baseDPS: 400 },
+            { id: 9, name: '灵长类', emoji: '🐵', dnaCost: 20000000, baseClick: 1000, baseDPS: 800 },
+            { id: 10, name: '原始人类', emoji: '🧑‍🦰', dnaCost: 100000000, baseClick: 2500, baseDPS: 2000 },
+            { id: 11, name: '现代人类', emoji: '🧑‍🔬', dnaCost: 500000000, baseClick: 5000, baseDPS: 4000 },
+            { id: 12, name: '智慧生命', emoji: '🧠', dnaCost: 2000000000, baseClick: 10000, baseDPS: 8000 },
+            { id: 13, name: '星际文明', emoji: '🚀', dnaCost: 10000000000, baseClick: 25000, baseDPS: 20000 },
+            { id: 14, name: '宇宙意识', emoji: '🌌', dnaCost: 50000000000, baseClick: 50000, baseDPS: 40000 }
+        ];
+
+        const UPGRADES = {
+            click_power: {
+                name: '点击强化',
+                description: '每次点击获得更多 DNA',
+                baseCost: 50,
+                costMultiplier: 1.5,
+                effect: 1
+            },
+            auto_collector: {
+                name: '自动收集器',
+                description: '自动产生 DNA',
+                baseCost: 100,
+                costMultiplier: 1.4,
+                effect: 2
+            },
+            mutation_boost: {
+                name: '突变加速',
+                description: '提高所有产出',
+                baseCost: 500,
+                costMultiplier: 1.6,
+                effect: 1.1
+            },
+            efficiency: {
+                name: '效率提升',
+                description: '提高点击效率',
+                baseCost: 1000,
+                costMultiplier: 1.5,
+                effect: 1.2
+            },
+            synergy: {
+                name: '协同效应',
+                description: '所有加成叠加',
+                baseCost: 5000,
+                costMultiplier: 1.7,
+                effect: 1.15
+            }
+        };
+
+        // ==================== 游戏状态 ====================
+        const gameState = {
+            dna: 0,
+            totalDna: 0,
+            stage: 0,
+            upgrades: {
+                click_power: 0,
+                auto_collector: 0,
+                mutation_boost: 0,
+                efficiency: 0,
+                synergy: 0
+            },
+            startTime: Date.now(),
+            lastSaveTime: Date.now()
+        };
+
+        // ==================== 工具函数 ====================
+        function formatNumber(num) {
+            if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return Math.floor(num).toString();
+        }
+
+        // ==================== 计算函数 ====================
+        function getClickPower() {
+            const stage = EVOLUTION_STAGES[gameState.stage];
+            let power = stage.baseClick;
+            
+            // 应用升级加成
+            power += gameState.upgrades.click_power * UPGRADES.click_power.effect;
+            power *= Math.pow(UPGRADES.efficiency.effect, gameState.upgrades.efficiency);
+            power *= Math.pow(UPGRADES.synergy.effect, gameState.upgrades.synergy);
+            
+            return power;
+        }
+
+        function getDPS() {
+            const stage = EVOLUTION_STAGES[gameState.stage];
+            let dps = stage.baseDPS;
+            
+            // 应用升级加成
+            dps += gameState.upgrades.auto_collector * UPGRADES.auto_collector.effect;
+            dps *= Math.pow(UPGRADES.mutation_boost.effect, gameState.upgrades.mutation_boost);
+            dps *= Math.pow(UPGRADES.synergy.effect, gameState.upgrades.synergy);
+            
+            return dps;
+        }
+
+        function getUpgradeCost(upgradeId) {
+            const upgrade = UPGRADES[upgradeId];
+            const level = gameState.upgrades[upgradeId];
+            return upgrade.baseCost * Math.pow(upgrade.costMultiplier, level);
+        }
+
+        function getNextStageCost() {
+            if (gameState.stage >= EVOLUTION_STAGES.length - 1) return Infinity;
+            return EVOLUTION_STAGES[gameState.stage + 1].dnaCost;
+        }
+
+        // ==================== UI 更新 ====================
+        function updateUI() {
+            document.getElementById('dna-count').textContent = formatNumber(gameState.dna);
+            document.getElementById('dps-count').textContent = formatNumber(getDPS());
+            document.getElementById('generation-count').textContent = gameState.stage + 1;
+            
+            const currentStage = EVOLUTION_STAGES[gameState.stage];
+            document.getElementById('organism-name').textContent = currentStage.name;
+            document.getElementById('organism-sprite').textContent = currentStage.emoji;
+            
+            if (gameState.stage < EVOLUTION_STAGES.length - 1) {
+                const nextStage = EVOLUTION_STAGES[gameState.stage + 1];
+                document.getElementById('next-stage-name').textContent = nextStage.name;
+                document.getElementById('dna-required').textContent = formatNumber(nextStage.dnaCost);
+                
+                const progress = Math.min(100, (gameState.totalDna / nextStage.dnaCost) * 100);
+                document.getElementById('evolution-progress').style.width = progress + '%';
+            } else {
+                document.getElementById('next-stage-name').textContent = '最高阶段';
+                document.getElementById('dna-required').textContent = '∞';
+                document.getElementById('evolution-progress').style.width = '100%';
+            }
+            
+            renderUpgrades();
+        }
+
+        function renderUpgrades() {
+            const listEl = document.getElementById('upgrades-list');
+            listEl.innerHTML = '';
+            
+            Object.keys(UPGRADES).forEach(upgradeId => {
+                const upgrade = UPGRADES[upgradeId];
+                const level = gameState.upgrades[upgradeId];
+                const cost = getUpgradeCost(upgradeId);
+                const canAfford = gameState.dna >= cost;
+                
+                const el = document.createElement('div');
+                el.className = `upgrade-item ${canAfford ? '' : 'disabled'}`;
+                el.innerHTML = `
+                    <strong>${upgrade.name}</strong> (Lv.${level})<br>
+                    <small>${upgrade.description}</small><br>
+                    <span style="color: ${canAfford ? '#00ff88' : '#ff4444'}">
+                        花费：${formatNumber(cost)} DNA
+                    </span>
+                `;
+                
+                if (canAfford) {
+                    el.onclick = () => buyUpgrade(upgradeId);
+                }
+                
+                listEl.appendChild(el);
+            });
+        }
+
+        function addLog(message) {
+            const logEl = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.insertBefore(entry, logEl.firstChild);
+            
+            while (logEl.children.length > 50) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+
+        // ==================== 游戏操作 ====================
+        function clickOrganism() {
+            const gain = getClickPower();
+            gameState.dna += gain;
+            gameState.totalDna += gain;
+            
+            // 检查是否可以进化
+            checkEvolution();
+            updateUI();
+        }
+
+        function buyUpgrade(upgradeId) {
+            const cost = getUpgradeCost(upgradeId);
+            if (gameState.dna >= cost) {
+                gameState.dna -= cost;
+                gameState.upgrades[upgradeId]++;
+                addLog(`购买了 ${UPGRADES[upgradeId].name}!`);
+                updateUI();
+            }
+        }
+
+        function checkEvolution() {
+            if (gameState.stage < EVOLUTION_STAGES.length - 1) {
+                const nextStage = EVOLUTION_STAGES[gameState.stage + 1];
+                if (gameState.dna >= nextStage.dnaCost) {
+                    // 自动进化
+                    evolve();
+                }
+            }
+        }
+
+        function evolve() {
+            if (gameState.stage < EVOLUTION_STAGES.length - 1) {
+                const nextStage = EVOLUTION_STAGES[gameState.stage + 1];
+                gameState.dna -= nextStage.dnaCost;
+                gameState.stage++;
+                addLog(`🎉 进化为 ${nextStage.name}!`);
+                updateUI();
+            }
+        }
+
+        // ==================== 游戏循环 ====================
+        let lastTime = Date.now();
+        let saveTimer = 0;
+
+        function gameLoop() {
+            const now = Date.now();
+            const delta = (now - lastTime) / 1000;
+            lastTime = now;
+            
+            // 被动 DNA 生成
+            const dps = getDPS();
+            if (dps > 0) {
+                const gain = dps * delta;
+                gameState.dna += gain;
+                gameState.totalDna += gain;
+            }
+            
+            // 检查进化
+            checkEvolution();
+            
+            // 自动保存 (每 30 秒)
+            saveTimer += delta;
+            if (saveTimer >= 30) {
+                saveGame();
+                saveTimer = 0;
+            }
+            
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==================== 存档系统 ====================
+        function saveGame() {
+            try {
+                localStorage.setItem('evolutionClickerSave', JSON.stringify(gameState));
+                console.log('✅ 游戏已保存');
+            } catch (e) {
+                console.error('保存失败:', e);
+            }
+        }
+
+        function loadGame() {
+            try {
+                const saved = localStorage.getItem('evolutionClickerSave');
+                if (saved) {
+                    const loaded = JSON.parse(saved);
+                    Object.assign(gameState, loaded);
+                    addLog('✅ 读取存档成功');
+                    return true;
+                }
+            } catch (e) {
+                console.error('读取存档失败:', e);
+            }
+            return false;
+        }
+
+        function resetGame() {
+            if (confirm('确定要重置游戏吗？所有进度将丢失！')) {
+                localStorage.removeItem('evolutionClickerSave');
+                location.reload();
+            }
+        }
+
+        // ==================== 事件绑定 ====================
+        document.getElementById('click-btn').addEventListener('click', () => {
+            clickOrganism();
+            addLog(`点击获得 ${formatNumber(getClickPower())} DNA`);
+        });
+
+        document.getElementById('organism-sprite').addEventListener('click', () => {
+            clickOrganism();
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                clickOrganism();
+            } else if (e.code === 'KeyS' && e.ctrlKey) {
+                e.preventDefault();
+                saveGame();
+                addLog('游戏已手动保存');
+            }
+        });
+
+        // ==================== 初始化 ====================
+        function init() {
+            if (loadGame()) {
+                // 存档已加载
+            } else {
+                addLog('游戏开始！点击按钮收集 DNA');
+                addLog(`当前阶段：${EVOLUTION_STAGES[gameState.stage].name}`);
+            }
+            
+            updateUI();
+            gameLoop();
+            
+            console.log('🎮 进化点击游戏已启动');
+            console.log('提示：按空格键快速点击，Ctrl+S 保存游戏');
+        }
+
+        // 启动游戏
+        init();
+    </script>
+</body>
+</html>
