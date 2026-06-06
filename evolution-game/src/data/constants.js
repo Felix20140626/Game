@@ -533,3 +533,10 @@ const Constants = {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Constants;
 }
+// ES6 Module Export
+export { Constants as CONSTANTS };
+
+// CommonJS Export (for Node.js compatibility)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Constants;
+}
