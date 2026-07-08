@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的世界 v26.1 - 联机版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* 准星 */
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .crosshair::before,
+        .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+
+        .crosshair::after {
+            width: 20px;
+            height: 2px;
+            top: 9px;
+            left: 0;
+        }
+
+        /* 快捷栏 */
+        .hotbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 100;
+        }
+
+        .hotbar-slots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .hotbar-slot {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hotbar-slot.selected {
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .slot-number {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .selected-block-name {
+            text-align: center;
+            color: white;
+            font-size: 14px;
+            margin-top: 8px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        /* 聊天框 */
+        .chat-container {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            width: 400px;
+            max-height: 300px;
+            z-index: 100;
+        }
+
+        .chat-messages {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+        }
+
+        .chat-message {
+            margin: 4px 0;
+            font-size: 14px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .chat-username {
+            color: #5bf;
+            font-weight: bold;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #5bf;
+        }
+
+        /* 玩家列表 */
+        .player-list {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            min-width: 150px;
+            z-index: 100;
+        }
+
+        .player-list h3 {
+            color: white;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .player-list ul {
+            list-style: none;
+        }
+
+        .player-list li {
+            color: #5bf;
+            font-size: 14px;
+            padding: 4px 0;
+        }
+
+        /* 调试信息 */
+        .debug-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            z-index: 100;
+            line-height: 1.6;
+        }
+
+        /* 游戏菜单 */
+        .game-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .menu-content {
+            background: rgba(26, 26, 46, 0.95);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-content h1 {
+            color: #5bf;
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(85, 187, 255, 0.5);
+        }
+
+        .menu-content button {
+            display: block;
+            width: 200px;
+            padding: 12px 24px;
+            margin: 10px auto;
+            background: linear-gradient(135deg, #1a5f7a, #159895);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-content button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(21, 152, 149, 0.4);
+        }
+
+        /* 加载屏幕 */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #loading-screen h1 {
+            color: #5bf;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(85, 187, 255, 0.5);
+        }
+
+        #loading-screen p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .loading-bar {
+            width: 300px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #1a5f7a, #159895);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 开始按钮 */
+        #start-button {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #1a5f7a, #159895);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        #start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(21, 152, 149, 0.4);
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载屏幕 -->
+    <div id="loading-screen">
+        <h1>我的世界 v26.1</h1>
+        <p>正在加载游戏资源...</p>
+        <div class="loading-bar">
+            <div class="loading-progress" id="loading-progress"></div>
+        </div>
+        <button id="start-button" style="display: none;">开始游戏</button>
+    </div>
+
+    <!-- 游戏容器 -->
+    <div id="game-container"></div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Socket.IO (用于多人联机) -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <!-- 游戏脚本 -->
+    <script src="js/blocks.js"></script>
+    <script src="js/world.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/worldManager.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/network.js"></script>
+    <script src="js/game.js"></script>
+
+    <!-- 主程序 -->
+    <script>
+        // 游戏实例
+        let game = null;
+
+        // 模拟加载进度
+        const loadingProgress = document.getElementById('loading-progress');
+        const startButton = document.getElementById('start-button');
+        let progress = 0;
+
+        const loadInterval = setInterval(() => {
+            progress += Math.random() * 20;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(loadInterval);
+                loadingProgress.style.width = '100%';
+                startButton.style.display = 'block';
+                document.querySelector('#loading-screen p').textContent = '游戏已就绪！';
+            } else {
+                loadingProgress.style.width = progress + '%';
+            }
+        }, 200);
+
+        // 开始游戏
+        startButton.addEventListener('click', async () => {
+            startButton.disabled = true;
+            startButton.textContent = '启动中...';
+
+            try {
+                // 隐藏加载屏幕
+                document.getElementById('loading-screen').style.display = 'none';
+
+                // 创建游戏实例
+                game = new Game();
+
+                // 初始化游戏
+                const success = await game.init({
+                    multiplayer: false, // 设置为 true 启用多人模式
+                    username: 'Player' + Math.floor(Math.random() * 1000),
+                    seed: null // null 表示随机种子
+                });
+
+                if (success) {
+                    // 开始游戏循环
+                    game.start();
+                } else {
+                    alert('游戏初始化失败，请刷新页面重试');
+                    startButton.disabled = false;
+                    startButton.textContent = '开始游戏';
+                }
+            } catch (error) {
+                console.error('游戏启动错误:', error);
+                alert('游戏启动失败：' + error.message);
+                startButton.disabled = false;
+                startButton.textContent = '开始游戏';
+            }
+        });
+
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            if (game) {
+                game.dispose();
+            }
+        });
+
+        // 显示版本信息
+        console.log('%c 我的世界 v26.1 ', 'background: #1a5f7a; color: white; font-size: 20px; padding: 10px;');
+        console.log('按 F3 显示/隐藏调试信息');
+        console.log('WASD 移动，空格跳跃，鼠标控制视角');
+        console.log('左键破坏方块，右键放置方块');
+        console.log('数字键 1-9 选择方块槽');
+        console.log('T 或 Enter 打开聊天，ESC 打开菜单');
+    </script>
+</body>
+</html>
